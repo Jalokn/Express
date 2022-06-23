@@ -3,6 +3,7 @@ const app = express()
 const path = require('path')
 const mongoose = require('mongoose');
 const methodOveride = require('method-override')
+const AppError = require('./AppError')
 
 
 const Product = require('./models/product')
@@ -23,6 +24,7 @@ app.use(methodOveride('_method'))
 const categories = ['fruit', 'vegetable', 'dairy',]
 
 app.get('/products/new', (req, res) => {
+
     res.render('products/new', { categories })
 })
 
@@ -47,15 +49,20 @@ app.get('/products', async (req, res) => {
 })
 
 
-app.get('/products/:id', async (req, res) => {
+app.get('/products/:id', async (req, res, next) => {
     const { id } = req.params
-    const product = await Product.findById(id)
+    const product = await Product.findById(id).catch((err) => {
+        next(new AppError(`Product not found: ${err}`, 404))
+    })
     res.render('products/show', { product })
+
 })
 
-app.get('/products/:id/edit', async (req, res) => {
+app.get('/products/:id/edit', async (req, res, next) => {
     const { id } = req.params
-    const product = await Product.findById(id)
+    const product = await Product.findById(id).catch((err) => {
+        next(new AppError(`Product not found: ${err}`, 404))
+    })
     res.render('products/edit', { product, categories })
 })
 
@@ -72,6 +79,12 @@ app.delete('/products/:id', async (req, res) => {
     const deletedProduct = await Product.findByIdAndDelete(id)
     res.redirect('/products')
 })
+
+app.use((err, req, res, next) => {
+    const { status = 500, message = 'Seomthing went wrong' } = err
+    res.status(status).send(message)
+}
+)
 
 app.listen(3000, () =>
     console.log('Listening on port 3000'))
