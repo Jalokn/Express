@@ -9,6 +9,11 @@ const { ppid } = require('process');
 const Farm = require('./models/farm');
 const { findById } = require('./models/product');
 const { response } = require('express');
+const flash = require('connect-flash')
+const session = require('express-session')
+
+app.use(session({ secret: 'this is not a good secret', resave: false, saveUninitialized: false }))
+app.use(flash())
 
 mongoose.connect('mongodb://localhost:27017/farmStand')
     .then(() => {
@@ -25,6 +30,11 @@ app.use(methodOveride('_method'))
 
 //Farm Routes
 
+app.use((req, res, next) => {
+    res.locals.messages = req.flash('success')
+    next()
+})
+
 app.get('/farms', async (req, res) => {
     const farms = await Farm.find({})
     res.render('farms/index', { farms })
@@ -37,6 +47,7 @@ app.get('/farms/new', (req, res) => {
 app.post('/farms', async (req, res) => {
     const newFarm = new Farm(req.body)
     newFarm.save()
+    req.flash('success', 'New farm added')
     res.redirect('/farms')
 })
 
